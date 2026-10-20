@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Enter marks{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Enter marks · {{ a.title }}</h1><p class="muted">{{ a.batch }} · {{ a.scheduled_at|date:"d M Y" }} · out of <b>{{ a.max_marks|floatformat:"-2" }}</b>. Leave a row blank to skip that student (e.g. absent).</p></div>
+  <a class="btn" href="{% url 'tests_detail' a.pk %}">Back to test</a></div>
+<form method="post" novalidate>{% csrf_token %}
+<div class="card flush"><div class="table-wrap"><table class="marks">
+  <thead><tr><th>Student</th><th>ID</th><th>Marks</th><th>%</th><th>Feedback (optional)</th></tr></thead><tbody>
+  {% for r in rows %}<tr class="{% if r.error %}row-err{% endif %}">
+    <td><b>{{ r.student.full_name }}</b>{% if r.saved %} <span class="badge ok">saved</span>{% endif %}</td><td>{{ r.student.student_code }}</td>
+    <td><input type="number" step="0.01" min="0" max="{{ a.max_marks|floatformat:'2' }}" name="marks_{{ r.student.pk }}" value="{{ r.marks }}" data-max="{{ a.max_marks|floatformat:'2' }}" data-id="{{ r.student.pk }}" aria-label="Marks for {{ r.student.full_name }}">{% if r.error %}<div class="t-bad small">{{ r.error }}</div>{% endif %}</td>
+    <td><span id="pct-{{ r.student.pk }}" class="muted small"></span></td>
+    <td><input class="fb" type="text" name="feedback_{{ r.student.pk }}" value="{{ r.feedback }}" aria-label="Feedback for {{ r.student.full_name }}"></td></tr>
+  {% empty %}<tr><td colspan="5"><div class="empty"><b>This batch has no active students.</b></div></td></tr>{% endfor %}</tbody></table></div></div>
+<div class="form-actions"><button class="btn primary">Save marks</button><a class="btn" href="{% url 'tests_detail' a.pk %}">Cancel</a></div>
+</form>
+{% endblock %}

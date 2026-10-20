@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}My workspace{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ user.first_name|default:user.username }}</h1><p class="muted">Your batches, tests and tasks. Only what you are responsible for is shown here.</p></div>
+  <div class="actions"><a class="btn primary" href="{% url 'tests_new' %}">+ Schedule / record a test</a></div>
+</div>
+
+{% if to_close %}<div class="alert-box"><b>{{ to_close|length }} test{{ to_close|length|pluralize }} past the scheduled date with no outcome.</b> Mark each as completed, cancelled or rescheduled so Management sees the true picture.</div>{% endif %}
+
+<div class="kpis">
+  {% include "partials/kpi.html" with label="My students" value=student_count n=metrics.batches sub=" batches" %}
+  {% include "partials/kpi.html" with label="Tests conducted" value=metrics.conducted pre="of " n=metrics.due sub=" due" %}
+  {% include "partials/kpi.html" with label="Class average" value=metrics.avg_score|pct tone=metrics.avg_score|tone %}
+  {% include "partials/kpi.html" with label="Marks pending" value=metrics.marks_pending tone="warn" %}
+  {% include "partials/kpi.html" with label="Open tasks" value=tasks|length %}
+  {% include "partials/kpi.html" with label="My score" value=metrics.score|default_if_none:"—" sub="see scorecard" %}
+</div>
+
+<div class="card"><div class="card-head"><div><h2>My batches</h2><div class="muted small">A test is expected at least every N days per batch.</div></div></div>
+  {% if gaps %}<div class="grid g3">{% for g in gaps %}
+    <div class="card" style="margin:0"><div class="card-head" style="margin:0"><h3><a href="{% url 'batches_detail' g.batch.pk %}">{{ g.batch.name }}</a></h3>
+      {% if g.is_overdue %}<span class="badge bad">{{ g.days_late }}d overdue</span>{% else %}<span class="badge ok">On schedule</span>{% endif %}</div>
+      <p class="small muted" style="margin:6px 0 0">Last test: {% if g.last_date %}{{ g.last_date|date:"d M Y" }}{% else %}never{% endif %}<br>Next due by {{ g.next_expected|date:"d M Y" }} (every {{ g.batch.test_interval_days }} days)</p>
+      {% if g.is_overdue %}<p style="margin:8px 0 0"><a class="btn sm primary" href="{% url 'tests_new' %}?batch={{ g.batch.pk }}">Schedule a test</a></p>{% endif %}</div>{% endfor %}</div>
+  {% else %}<div class="empty"><b>You are not assigned to any batch yet.</b>Ask Management or Admin to attach you to a batch.</div>{% endif %}</div>
+
+<div class="grid g2">
+  <div class="card"><div class="card-head"><h2>Needs closing</h2></div>
+    {% if to_close %}<ul class="list">{% for a in to_close %}<li><span><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a> <span class="muted small">{{ a.batch }}</span></span><span class="t-bad small">{{ a.scheduled_at|date:"d M" }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>All caught up.</b></div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>Marks to enter</h2></div>
+    {% if missing_marks %}<ul class="list">{% for a in missing_marks %}<li><span><a href="{% url 'tests_marks' a.pk %}">{{ a.title }}</a> <span class="muted small">{{ a.batch }}</span></span><span class="badge warn">{{ a.n_res }} entered</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No marks pending.</b></div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>Upcoming tests</h2><a class="small" href="{% url 'tests_list' %}?view=calendar">Calendar</a></div>
+    {% if upcoming %}<ul class="list">{% for a in upcoming %}<li><span><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a> <span class="muted small">{{ a.batch }}</span></span><span class="muted small">{{ a.scheduled_at|date:"d M, H:i" }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No upcoming tests.</b>Schedule one for your batch.</div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>My open tasks</h2><a class="small" href="{% url 'tasks_list' %}">All tasks</a></div>
+    {% if tasks %}<ul class="list">{% for t in tasks %}<li><span><a href="{% url 'tasks_detail' t.pk %}">{{ t.title }}</a>{% if t.is_overdue %} <span class="badge bad">overdue</span>{% endif %}</span><span class="muted small">{% if t.deadline %}due {{ t.deadline|date:"d M" }}{% else %}no deadline{% endif %}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No open tasks.</b></div>{% endif %}</div>
+</div>
+
+<div class="card"><div class="card-head"><div><h2>Students needing attention</h2><div class="muted small">Last 3 results average below {{ attention_threshold }}%.</div></div></div>
+  {% if attention_students %}<ul class="list">{% for r in attention_students %}<li><span><a href="{% url 'students_detail' r.student.pk %}">{{ r.student.full_name }}</a> <span class="muted small">{{ r.student.batch.name }}</span></span><span class="t-bad">{{ r.avg|pct }}</span></li>{% endfor %}</ul>
+  {% else %}<div class="empty"><b>No students flagged.</b></div>{% endif %}</div>
+{% endblock %}

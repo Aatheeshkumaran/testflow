@@ -1,0 +1,28 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · TestFlow</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body>
+<div class="login-wrap">
+  <section class="login-art">
+    <div class="brand" style="padding:0"><span class="logo">T</span> TestFlow</div>
+    <h1>Know when every batch was last tested, and how they scored.</h1>
+    <ul>
+      <li>Management sees which mentors conducted tests, and which didn't.</li>
+      <li>Mentors record tests and marks for their own batches in one place.</li>
+      <li>Student and mentor progress as clear charts.</li>
+    </ul>
+  </section>
+  <section class="login-form">
+    <form method="post" class="login-box" novalidate>
+      {% csrf_token %}
+      <h1>Sign in</h1>
+      <p class="muted">Use the username and password given to you by your administrator.</p>
+      {% if form.errors %}<div class="alert-box" role="alert">Incorrect username or password, or the account has been deactivated. Please try again.</div>{% endif %}
+      <div class="field"><label for="id_username">Username</label><input type="text" name="username" id="id_username" autocomplete="username" autofocus required value="{{ form.username.value|default:'' }}"></div>
+      <div class="field"><label for="id_password">Password</label><input type="password" name="password" id="id_password" autocomplete="current-password" required></div>
+      {% if request.GET.next %}<input type="hidden" name="next" value="{{ request.GET.next }}">{% endif %}
+      <button class="btn primary" type="submit">Sign in</button>
+    </form>
+  </section>
+</div>
+</body></html>

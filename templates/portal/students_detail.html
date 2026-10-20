@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="who"><span class="avatar lg">{{ student.full_name|slice:":1" }}</span><div><h1>{{ student.full_name }}</h1>
+    <p class="muted">{{ student.student_code }} · <a href="{% url 'batches_detail' student.batch.pk %}">{{ student.batch.name }}</a> · Mentor{{ mentors|length|pluralize }}: {% for m in mentors %}{{ m.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}none{% endfor %}
+      · <span class="badge {% if student.is_active %}active{% else %}inactive{% endif %}">{% if student.is_active %}Active{% else %}Inactive{% endif %}</span></p></div></div>
+  <div class="actions">{% if can_edit %}<a class="btn" href="{% url 'students_edit' student.pk %}">Edit</a>{% endif %}<a class="btn" href="{% url 'students_list' %}">All students</a></div>
+</div>
+
+{% if s.attention %}<div class="alert-box warn"><b>Needs attention</b><ul style="margin:6px 0 0;padding-left:18px">{% for r in s.attention %}<li>{{ r }}</li>{% endfor %}</ul></div>{% endif %}
+
+<div class="kpis">
+  {% include "partials/kpi.html" with label="Tests taken" value=s.count %}
+  {% include "partials/kpi.html" with label="Average score" value=s.average|pct tone=s.average|tone %}
+  {% include "partials/kpi.html" with label="Latest result" value=s.latest.percentage|pct tone=s.latest.percentage|tone %}
+  {% if s.trend is None %}{% include "partials/kpi.html" with label="Trend" value="—" sub="needs 2+ tests" %}
+  {% elif s.trend >= 0 %}{% include "partials/kpi.html" with label="Trend" value=s.trend tone="good" sub="points vs earlier average" %}
+  {% else %}{% include "partials/kpi.html" with label="Trend" value=s.trend tone="bad" sub="points vs earlier average" %}{% endif %}
+  {% if s.batch_avg is not None %}{% include "partials/kpi.html" with label="Batch average" value=s.batch_avg|pct sub="for comparison" %}
+  {% else %}{% include "partials/kpi.html" with label="Batch average" value="—" sub="not enough batch data" %}{% endif %}
+</div>
+
+{% if s.has_data %}
+<div class="grid g2">
+  {% include "partials/chart.html" with title="Performance trend" sub="Score per test; dashed line = batch average where enough students took the test" cid="s-trend" config=s.charts.trend size="tall" %}
+  {% include "partials/chart.html" with title="Subject performance" sub="Average per subject" cid="s-subjects" config=s.charts.subjects size="tall" %}
+</div>
+{% else %}<div class="card"><div class="empty"><b>No results recorded yet.</b>Charts appear automatically once marks are entered for this student.</div></div>{% endif %}
+
+{% if s.weak %}<div class="card"><h2>Areas of improvement</h2><p class="muted small">Subjects where the student's average is below {{ attention_threshold }}%.</p>
+  <ul class="list">{% for w in s.weak %}<li><span>{{ w.subject }}</span><span class="t-bad">{{ w.avg|pct }} <span class="muted small">({{ w.n }} test{{ w.n|pluralize }})</span></span></li>{% endfor %}</ul></div>{% endif %}
+
+{% if s.missing %}<div class="card"><h2>Tests with no marks for this student</h2><ul class="list">{% for a in s.missing %}<li><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a><span class="muted small">{{ a.scheduled_at|date:"d M Y" }}</span></li>{% endfor %}</ul></div>{% endif %}
+
+<div class="card flush"><div class="card-head"><h2>Assessment history</h2></div><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Test</th><th>Subject</th><th>Marks</th><th>Percent</th><th>Feedback</th></tr></thead><tbody>
+  {% for r in s.results %}<tr><td class="nowrap">{{ r.assessment.scheduled_at|date:"d M Y" }}</td><td><a href="{% url 'tests_detail' r.assessment.pk %}">{{ r.assessment.title }}</a></td><td>{{ r.assessment.subject }}</td>
+    <td>{{ r.marks_obtained|floatformat:"-2" }} / {{ r.max_marks|floatformat:"-2" }}</td><td class="t-{{ r.percentage|tone }}">{{ r.percentage|pct }}</td><td class="muted">{{ r.feedback|default:"—" }}</td></tr>
+  {% empty %}<tr><td colspan="6"><div class="empty"><b>No results yet.</b></div></td></tr>{% endfor %}</tbody></table></div></div>
+{% if student.notes %}<div class="card"><h2>Notes</h2><p>{{ student.notes|linebreaksbr }}</p></div>{% endif %}
+{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}

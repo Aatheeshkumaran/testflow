@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Notifications</h1><p class="muted">Alerts clear themselves once the underlying problem is fixed.</p></div>
+  <div class="actions"><a class="btn {% if not show %}primary{% endif %}" href="?">All</a><a class="btn {% if show == 'unread' %}primary{% endif %}" href="?show=unread">Unread</a><a class="btn {% if show == 'open' %}primary{% endif %}" href="?show=open">Unresolved</a>
+    <form method="post" action="{% url 'notifications_read_all' %}">{% csrf_token %}<button class="btn">Mark all read</button></form></div></div>
+<div class="card flush">
+  {% for n in page %}<div style="display:flex;gap:12px;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);{% if not n.is_read %}background:var(--violet-l){% endif %}">
+    <div><a href="{% url 'notifications_open' n.pk %}"><b>{{ n.title }}</b></a> <span class="badge">{{ n.get_kind_display }}</span>{% if n.resolved_at %} <span class="badge ok">resolved</span>{% endif %}
+      <div class="muted small">{{ n.message }}</div><div class="muted small">{{ n.created_at|date:"d M Y, H:i" }}</div></div>
+    {% if not n.is_read %}<form method="post" action="{% url 'notifications_read' n.pk %}">{% csrf_token %}<button class="btn sm">Mark read</button></form>{% endif %}</div>
+  {% empty %}<div class="empty"><b>You're all caught up.</b>No notifications here.</div>{% endfor %}
+  {% include "partials/pager.html" %}</div>
+{% endblock %}

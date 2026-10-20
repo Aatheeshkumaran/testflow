@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}{{ mentor_obj.display_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="who">{% include "partials/avatar.html" with u=mentor_obj size="lg" %}<div><h1>{{ mentor_obj.display_name }}</h1><p class="muted">Mentor · {{ m.batches }} batch{{ m.batches|pluralize:"es" }} · {{ m.students }} students</p></div></div>
+  <div class="actions">{% include "partials/period.html" %}{% if not user.is_mentor_role %}<a class="btn" href="{% url 'mentors_list' %}">All mentors</a>{% endif %}</div>
+</div>
+
+{% if m.gap_batches %}<div class="alert-box"><b>Overdue for a test:</b>
+  {% for g in m.gap_batches %}<a href="{% url 'batches_detail' g.batch.pk %}">{{ g.batch.name }}</a> ({{ g.days_late }} days late){% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+
+<div class="kpis">
+  {% if m.ranked %}{% include "partials/kpi.html" with label="Overall score" value=m.score tone=m.score|tone sub="out of 100" %}
+  {% else %}{% include "partials/kpi.html" with label="Overall score" value="—" sub="Not enough data yet" %}{% endif %}
+  {% include "partials/kpi.html" with label="Tests conducted" value=m.conduct|pct tone=m.conduct|tone pre="" n=m.conducted sub=" completed" %}
+  {% include "partials/kpi.html" with label="Cancelled / missed" value=m.cancelled pre="missed: " n=m.missed %}
+  {% include "partials/kpi.html" with label="Marks entered" value=m.marks|pct tone=m.marks|tone n=m.marks_pending sub=" pending" %}
+  {% include "partials/kpi.html" with label="Class average" value=m.avg_score|pct tone=m.avg_score|tone %}
+  {% include "partials/kpi.html" with label="Tasks done" value=m.task_rate|pct tone=m.task_rate|tone n=m.tasks_overdue sub=" overdue" %}
+</div>
+
+<div class="grid g2">
+  {% include "partials/chart.html" with title="Tests per month" sub="Conducted, cancelled, missed" cid="md-monthly" config=data.charts.monthly %}
+  {% if data.has_scores %}{% include "partials/chart.html" with title="Class average per test" sub="Score of the students on each test this mentor conducted" cid="md-scores" config=data.charts.scores %}
+  {% else %}<div class="card"><h2>Class average per test</h2><div class="empty"><b>No marks recorded yet.</b>This chart appears once results are entered.</div></div>{% endif %}
+  {% include "partials/chart.html" with title="Tasks" cid="md-tasks" config=data.charts.tasks size="short" %}
+  <div class="card"><h2>Scorecard</h2>
+    <dl class="dl" style="margin-top:10px">
+      <dt>Tests conducted</dt><dd>{{ m.conduct|pct }} <span class="muted small">{{ m.conducted }} of {{ m.due }} due</span></dd>
+      <dt>Missed (no outcome)</dt><dd>{{ m.missed }}</dd>
+      <dt>Rescheduled</dt><dd>{{ m.rescheduled }}</dd>
+      <dt>Marks entered</dt><dd>{{ m.marks|pct }}</dd>
+      <dt>Schedule compliance</dt><dd>{{ m.compliance|pct }}</dd>
+      <dt>Tasks on time</dt><dd>{{ m.on_time|pct }}</dd>
+      <dt>Upcoming tests</dt><dd>{{ m.upcoming }}</dd>
+    </dl></div>
+</div>
+
+<div class="grid g2">
+  <div class="card flush"><div class="card-head"><h2>Recent tests</h2></div><div class="table-wrap"><table><thead><tr><th>Test</th><th>Batch</th><th>Date</th><th>Status</th></tr></thead><tbody>
+    {% for a in data.recent %}<tr><td><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a></td><td>{{ a.batch }}</td><td>{{ a.scheduled_at|date:"d M Y" }}</td><td>{% include "partials/test_badge.html" %}</td></tr>
+    {% empty %}<tr><td colspan="4"><div class="empty"><b>No tests in this period.</b></div></td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card"><div class="card-head"><h2>Students needing attention</h2></div>
+    {% if attention_students %}<ul class="list">{% for r in attention_students %}<li><span><a href="{% url 'students_detail' r.student.pk %}">{{ r.student.full_name }}</a> <span class="muted small">{{ r.student.batch.name }}</span></span><span class="t-bad">{{ r.avg|pct }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No one flagged.</b></div>{% endif %}</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}

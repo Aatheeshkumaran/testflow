@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}{{ a.title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ a.title }}</h1><p class="muted">{{ a.subject }} · <a href="{% url 'batches_detail' a.batch.pk %}">{{ a.batch }}</a> · {% include "partials/test_badge.html" %}</p></div>
+  <div class="actions">{% if can_edit %}<a class="btn" href="{% url 'tests_edit' a.pk %}">Edit details</a>{% if a.status == "COMPLETED" %}<a class="btn primary" href="{% url 'tests_marks' a.pk %}">Enter / edit marks</a>{% endif %}{% endif %}<a class="btn" href="{% url 'tests_list' %}">All tests</a></div></div>
+
+{% if a.is_overdue %}<div class="alert-box"><b>This test's date has passed and no outcome is recorded.</b> {% if can_edit %}Mark it completed, cancel it or reschedule it below.{% endif %}</div>{% endif %}
+
+<div class="grid g2">
+  <div class="card"><h2>Details</h2><dl class="dl" style="margin-top:10px">
+    <dt>Scheduled</dt><dd>{{ a.scheduled_at|date:"D, d M Y · H:i" }}</dd>
+    <dt>Mentor</dt><dd>{{ a.mentor.display_name }}</dd>
+    <dt>Type · Mode</dt><dd>{{ a.get_assessment_type_display }} · {{ a.get_mode_display }}</dd>
+    <dt>Venue</dt><dd>{{ a.venue|default:"—" }}</dd>
+    <dt>Maximum marks</dt><dd>{{ a.max_marks|floatformat:"-2" }}</dd>
+    {% if a.actual_start or a.actual_end %}<dt>Actual time</dt><dd>{{ a.actual_start|date:"H:i"|default:"?" }} – {{ a.actual_end|date:"H:i"|default:"?" }}</dd>{% endif %}
+    {% if a.status == "COMPLETED" %}<dt>Marks due by</dt><dd>{{ a.results_due_at|date:"d M Y, H:i" }}</dd>
+      <dt>Marks entered</dt><dd>{{ results|length }} of {{ active_students }} active students {% if results|length < active_students %}<span class="badge warn">incomplete</span>{% else %}<span class="badge ok">complete</span>{% endif %}</dd>
+      <dt>Class average</dt><dd>{{ class_avg|floatformat:1|default:"—" }}{% if class_avg is not None %}%{% endif %}</dd>{% endif %}
+    {% if a.outcome_reason %}<dt>Reason</dt><dd>{{ a.outcome_reason }}</dd>{% endif %}
+    {% if a.notes %}<dt>Notes</dt><dd>{{ a.notes|linebreaksbr }}</dd>{% endif %}
+    <dt>Scheduled by</dt><dd>{{ a.created_by.display_name }}</dd></dl></div>
+
+  {% if can_edit and a.is_pending %}
+  <div class="card"><h2>Record the outcome</h2>
+    <form method="post" action="{% url 'tests_action' a.pk %}" class="field" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="action" value="complete">
+      <b class="small">Test was conducted</b>
+      <div class="grid g2" style="margin:6px 0"><div><label class="small" for="cs">Actual start (optional)</label><input id="cs" type="datetime-local" name="actual_start"></div><div><label class="small" for="ce">Actual end (optional)</label><input id="ce" type="datetime-local" name="actual_end"></div></div>
+      <button class="btn primary">Mark completed</button></form>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <form method="post" action="{% url 'tests_action' a.pk %}" class="field">{% csrf_token %}<input type="hidden" name="action" value="reschedule">
+      <b class="small">Reschedule</b><div style="margin:6px 0"><label class="small" for="rt">New date &amp; time</label><input id="rt" type="datetime-local" name="new_time" required></div>
+      <label class="small" for="rr">Reason *</label><textarea id="rr" name="reason" rows="2" required></textarea><button class="btn" style="margin-top:6px">Reschedule</button></form>
+    <form method="post" action="{% url 'tests_action' a.pk %}" class="field" data-confirm="Cancel this test? Management will be notified.">{% csrf_token %}<input type="hidden" name="action" value="cancel">
+      <b class="small">Cancel</b><label class="small" for="cr" style="margin-top:6px">Reason *</label><textarea id="cr" name="reason" rows="2" required></textarea><button class="btn danger" style="margin-top:6px">Cancel test</button></form>
+  </div>{% endif %}
+</div>
+
+<div class="card flush"><div class="card-head"><h2>Results</h2></div><div class="table-wrap"><table>
+  <thead><tr><th>Student</th><th>ID</th><th>Marks</th><th>Percent</th><th>Feedback</th><th>Entered by</th></tr></thead><tbody>
+  {% for r in results %}<tr><td><a href="{% url 'students_detail' r.student.pk %}">{{ r.student.full_name }}</a></td><td>{{ r.student.student_code }}</td><td>{{ r.marks_obtained|floatformat:"-2" }} / {{ r.max_marks|floatformat:"-2" }}</td>
+    <td class="t-{{ r.percentage|tone }}">{{ r.percentage|pct }}</td><td class="muted">{{ r.feedback|default:"—" }}</td><td class="muted small">{{ r.entered_by.display_name }}, {{ r.entered_at|date:"d M" }}</td></tr>
+  {% empty %}<tr><td colspan="6"><div class="empty"><b>No marks entered.</b>{% if a.status == "COMPLETED" and can_edit %}<a href="{% url 'tests_marks' a.pk %}">Enter marks now</a>{% endif %}</div></td></tr>{% endfor %}</tbody></table></div></div>
+
+<div class="card"><h2>History</h2><ul class="timeline" style="margin-top:12px">
+  {% for e in events %}<li><b>{{ e.get_action_display }}</b> <span class="muted small">by {{ e.actor.display_name|default:"—" }} · {{ e.created_at|date:"d M Y H:i" }}</span>
+    {% if e.old_time and e.new_time %}<div class="small">{{ e.old_time|date:"d M, H:i" }} → {{ e.new_time|date:"d M, H:i" }}</div>{% endif %}{% if e.reason %}<div class="small muted">{{ e.reason }}</div>{% endif %}</li>
+  {% empty %}<li class="muted">No history yet.</li>{% endfor %}</ul></div>
+{% endblock %}

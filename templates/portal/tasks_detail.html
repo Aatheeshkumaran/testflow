@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ task.title }}</h1><p class="muted">Assigned to {{ task.assigned_to.display_name }} by {{ task.created_by.display_name }}</p></div>
+  <div class="actions">{% if not user.is_mentor_role %}<a class="btn" href="{% url 'tasks_edit' task.pk %}">Edit</a>{% endif %}<a class="btn" href="{% url 'tasks_list' %}">All tasks</a></div></div>
+{% if task.is_overdue %}<div class="alert-box"><b>Overdue.</b> The deadline of {{ task.deadline|date:"d M Y, H:i" }} has passed.</div>{% endif %}
+<div class="grid g2">
+  <div class="card"><h2>Details</h2><dl class="dl" style="margin-top:10px">
+    <dt>Status</dt><dd><span class="badge {{ task.status|lower }}">{{ task.get_status_display }}</span></dd><dt>Priority</dt><dd>{{ task.get_priority_display }}</dd>
+    <dt>Progress</dt><dd><div class="bar"><i style="width:{{ task.progress }}%"></i></div>{{ task.progress }}%</dd>
+    <dt>Deadline</dt><dd>{% if task.deadline %}{{ task.deadline|date:"d M Y, H:i" }}{% else %}No deadline{% endif %}</dd>
+    {% if task.completed_at %}<dt>Completed</dt><dd>{{ task.completed_at|date:"d M Y, H:i" }}{% if task.completed_on_time is False %} <span class="badge bad">late</span>{% elif task.completed_on_time %} <span class="badge ok">on time</span>{% endif %}</dd>{% endif %}
+    <dt>Description</dt><dd>{{ task.description|linebreaksbr|default:"—" }}</dd></dl></div>
+  {% if can_update %}<div class="card"><h2>Post today's update</h2>
+    <form method="post" novalidate style="margin-top:12px">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn primary">Save update</button></form></div>{% endif %}
+</div>
+<div class="card"><h2>Daily updates</h2><ul class="timeline" style="margin-top:12px">
+  {% for u in updates %}<li><b>{{ u.get_status_display }} · {{ u.progress }}%</b> <span class="muted small">{{ u.updated_by.display_name }} · {{ u.created_at|date:"d M Y H:i" }}</span><div>{{ u.note|linebreaksbr }}</div></li>
+  {% empty %}<li class="muted">No updates yet.</li>{% endfor %}</ul></div>
+{% endblock %}

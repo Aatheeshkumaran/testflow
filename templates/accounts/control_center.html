@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Admin Control Center{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Admin Control Center</h1><p class="muted">Accounts, roles and access for the whole organisation.</p></div>
+  <div class="actions">
+    <a class="btn" href="{% url 'overview' %}">Open overview</a>
+    <a class="btn primary" href="{% url 'users_new' %}">+ Create account</a>
+  </div>
+</div>
+
+<div class="kpis">
+  {% include "partials/kpi.html" with label="Active users" value=counts.active_users %}
+  {% include "partials/kpi.html" with label="Active students" value=counts.students %}
+  {% include "partials/kpi.html" with label="Active mentors" value=counts.mentors %}
+  {% include "partials/kpi.html" with label="Management accounts" value=counts.management %}
+  {% include "partials/kpi.html" with label="Total tests" value=counts.assessments n=counts.completed sub=" completed" %}
+  {% include "partials/kpi.html" with label="Open tasks" value=counts.open_tasks %}
+  {% include "partials/kpi.html" with label="Overdue tasks" value=counts.overdue_tasks tone="bad" %}
+</div>
+
+<div class="card flush">
+  <div class="card-head"><h2>People and access</h2>
+    <form method="get" class="actions">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search name, username, email" style="width:260px">
+      <select name="role" style="width:auto" onchange="this.form.submit()"><option value="">All roles</option>
+        {% for v, t in roles %}<option value="{{ v }}" {% if role_filter == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+      <button class="btn">Search</button>
+    </form>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Person</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th class="right">Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td><div class="who">{% include "partials/avatar.html" with u=u size="sm" %}<b>{{ u.display_name }}</b></div></td>
+        <td>{{ u.username }}</td><td>{{ u.email|default:"—" }}</td>
+        <td><span class="badge {% if u.effective_role == 'ADMIN' %}admin{% elif u.effective_role == 'MANAGEMENT' %}mgmt{% else %}scheduled{% endif %}">{{ u.role_label }}</span>{% if u.must_change_password %} <span class="badge warn" title="Has not yet replaced the temporary password">temp password</span>{% endif %}</td>
+        <td><span class="badge {% if u.is_active %}active{% else %}inactive{% endif %}">{% if u.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+        <td class="right nowrap">
+          <a class="btn sm" href="{% url 'users_edit' u.pk %}">Edit</a>
+          {% if u.pk != user.pk %}
+          <form method="post" action="{% url 'users_toggle' u.pk %}" style="display:inline" data-confirm="{% if u.is_active %}Deactivate {{ u.username }}? They will no longer be able to sign in.{% else %}Reactivate {{ u.username }}?{% endif %}">
+            {% csrf_token %}<button class="btn sm {% if u.is_active %}danger{% endif %}">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button></form>
+          {% else %}<span class="muted small">(you)</span>{% endif %}
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="6"><div class="empty"><b>No accounts match.</b>Try a different search.</div></td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+
+<div class="card flush">
+  <div class="card-head"><h2>Recent administrative activity</h2></div>
+  <div class="table-wrap"><table><thead><tr><th>When</th><th>By</th><th>Action</th><th>Account</th><th>Detail</th></tr></thead><tbody>
+    {% for e in audit %}<tr><td class="nowrap">{{ e.created_at|date:"d M Y H:i" }}</td><td>{{ e.actor.display_name|default:"—" }}</td><td>{{ e.action }}</td><td>{{ e.target }}</td><td class="muted">{{ e.detail }}</td></tr>
+    {% empty %}<tr><td colspan="5"><div class="empty">No activity recorded yet.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Tests{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Tests</h1><p class="muted">Schedule, conduct and record tests. Date, status and outcome reasons are kept for every test.</p></div>
+  <div class="actions">
+    <a class="btn {% if view != 'calendar' %}primary{% endif %}" href="?view=list">List</a><a class="btn {% if view == 'calendar' %}primary{% endif %}" href="?view=calendar">Calendar</a>
+    <a class="btn primary" href="{% url 'tests_new' %}">+ Schedule test</a></div></div>
+<form method="get" class="filters"><input type="hidden" name="view" value="{{ view }}">
+  <div class="wide"><label for="id_q">Search</label>{{ form.q }}</div>
+  <div><label for="id_status">Status</label>{{ form.status }}</div>
+  <div><label for="id_batch">Batch</label>{{ form.batch }}</div>
+  {% if form.mentor %}<div><label for="id_mentor">Mentor</label>{{ form.mentor }}</div>{% endif %}
+  <div><label for="id_date_from">From</label>{{ form.date_from }}</div><div><label for="id_date_to">To</label>{{ form.date_to }}</div>
+  <div style="flex:0"><button class="btn">Filter</button></div>
+</form>
+
+{% if view == "calendar" %}
+<div class="card flush"><div class="card-head"><h2>{{ cal.label }}</h2><div class="actions"><a class="btn sm" href="?view=calendar&amp;month={{ cal.prev }}">‹ Prev</a><a class="btn sm" href="?view=calendar&amp;month={{ cal.next }}">Next ›</a></div></div>
+<div class="table-wrap"><table class="cal"><thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead><tbody>
+  {% for week in cal.weeks %}<tr>{% for day in week %}<td class="{% if not day.in_month %}off{% endif %} {% if day.today %}today{% endif %}"><div class="d">{{ day.date.day }}</div>
+    {% for a in day.items %}<a class="ev {{ a|test_state }}" href="{% url 'tests_detail' a.pk %}" title="{{ a.title }} · {{ a.batch }} · {{ a|test_state_label }}">{{ a.batch }}: {{ a.title }}</a>{% endfor %}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table></div>
+<p class="small muted" style="padding:0 18px 14px">Green = completed · Blue = scheduled · Amber = rescheduled · Red = cancelled or missed</p></div>
+{% else %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Test</th><th>Batch</th><th>Mentor</th><th>Type</th><th>Status</th><th>Marks</th></tr></thead><tbody>
+  {% for a in page %}<tr>
+    <td class="nowrap">{{ a.scheduled_at|date:"d M Y, H:i" }}</td>
+    <td><a href="{% url 'tests_detail' a.pk %}"><b>{{ a.title }}</b></a><div class="muted small">{{ a.subject }}</div></td><td>{{ a.batch }}</td><td>{{ a.mentor.display_name }}</td><td>{{ a.get_assessment_type_display }}</td>
+    <td>{% include "partials/test_badge.html" %}{% if a.reschedule_count %} <span class="muted small">×{{ a.reschedule_count }}</span>{% endif %}</td>
+    <td>{% if a.status == "COMPLETED" %}{{ a.n_res }} entered{% else %}<span class="muted">—</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7"><div class="empty"><b>No tests found.</b>Adjust the filters or schedule a test.</div></td></tr>{% endfor %}</tbody></table></div>{% include "partials/pager.html" %}</div>
+{% endif %}
+{% endblock %}

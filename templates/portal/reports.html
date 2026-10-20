@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Reports</h1><p class="muted">CSV exports open in Excel. You only receive records you are allowed to see.</p></div></div>
+<div class="grid g3">
+  <div class="card"><h2>Student results</h2><p class="muted small">Every mark with test date, subject, batch and percentage.</p><a class="btn primary" href="{% url 'reports_results' %}">Download CSV</a></div>
+  <div class="card"><h2>Test log</h2><p class="muted small">All tests with status, mentor, reschedule count and reasons.</p><a class="btn primary" href="{% url 'reports_tests' %}">Download CSV</a></div>
+  {% if not user.is_mentor_role %}<div class="card"><h2>Mentor performance</h2><p class="muted small">Rates and score per mentor (last 90 days).</p><a class="btn primary" href="{% url 'reports_mentors' %}">Download CSV</a></div>{% endif %}
+</div>
+{% endblock %}

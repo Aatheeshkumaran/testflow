@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Batches{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if user.is_mentor_role %}My batches{% else %}Batches{% endif %}</h1><p class="muted">Each batch has its own test interval; alerts fire when it is exceeded.</p></div>
+  {% if not user.is_mentor_role %}<a class="btn primary" href="{% url 'batches_new' %}">+ New batch</a>{% endif %}</div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Batch</th><th>Mentor(s)</th><th>Students</th><th>Test every</th><th>Last test</th><th>Test status</th><th>State</th></tr></thead><tbody>
+  {% for r in rows %}<tr>
+    <td><a href="{% url 'batches_detail' r.batch.pk %}"><b>{{ r.batch.name }}</b></a><div class="muted small">{{ r.batch.course }}</div></td>
+    <td>{% for m in r.batch.mentors.all %}{{ m.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">none</span>{% endfor %}</td>
+    <td>{{ r.students }}</td><td>{{ r.batch.test_interval_days }} days</td>
+    <td>{% if r.gap.last_date %}{{ r.gap.last_date|date:"d M Y" }}{% else %}<span class="muted">Never</span>{% endif %}</td>
+    <td>{% if not r.batch.is_active %}<span class="muted">—</span>{% elif r.gap.is_overdue %}<span class="badge bad">{{ r.gap.days_late }}d overdue</span>{% else %}<span class="badge ok">On schedule</span>{% endif %}</td>
+    <td><span class="badge {% if r.batch.is_active %}active{% else %}inactive{% endif %}">{% if r.batch.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+  </tr>{% empty %}<tr><td colspan="7"><div class="empty"><b>No batches yet.</b>{% if user.is_mentor_role %}Ask Management to attach you to a batch.{% else %}Create the first batch to start.{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

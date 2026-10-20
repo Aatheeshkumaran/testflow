@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Mentors{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Mentor performance</h1><p class="muted">Compared on normalised rates, so a mentor with 20 students is not ranked below one with 70.</p></div>
+  <div class="actions">
+    <form method="get" class="actions">
+      <select name="batch" style="width:auto" onchange="this.form.submit()"><option value="">All batches</option>
+        {% for b in batches %}<option value="{{ b.pk }}" {% if batch and batch.pk == b.pk %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select>
+      <select name="days" style="width:auto" onchange="this.form.submit()">
+        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option><option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+        <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 months</option><option value="365" {% if days == 365 %}selected{% endif %}>Last 12 months</option>
+        <option value="0" {% if days == 0 %}selected{% endif %}>All time</option></select>
+    </form>
+    <a class="btn" href="{% url 'reports_mentors' %}?days={{ days }}">Export CSV</a>
+  </div>
+</div>
+
+<div class="card flush">
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Mentor</th><th>Score</th><th>Tests conducted</th><th>Cancelled</th><th>Missed</th><th>Marks entered</th><th>Schedule</th><th>Tasks done</th><th>On time</th><th>Students</th></tr></thead><tbody>
+    {% for r in board %}<tr>
+      <td>{% if r.ranked %}{{ r.rank }}{% else %}—{% endif %}</td>
+      <td><a class="who" href="{% url 'mentors_detail' r.mentor.pk %}">{% include "partials/avatar.html" with u=r.mentor size="sm" %}<b>{{ r.mentor.display_name }}</b></a></td>
+      <td style="min-width:130px">{% if r.ranked %}<div class="bar {{ r.score|tone }}"><i style="width:{{ r.score|width }}%"></i></div><b class="small">{{ r.score }} / 100</b>{% else %}<span class="badge" title="Needs at least a few tests due in this period">Not enough data</span>{% endif %}</td>
+      <td class="t-{{ r.conduct|tone }}">{{ r.conduct|pct }} <span class="muted small">({{ r.conducted }}/{{ r.due }})</span></td>
+      <td>{{ r.cancelled }}</td><td>{% if r.missed %}<span class="t-bad">{{ r.missed }}</span>{% else %}0{% endif %}</td>
+      <td class="t-{{ r.marks|tone }}">{{ r.marks|pct }}</td><td class="t-{{ r.compliance|tone }}">{{ r.compliance|pct }}</td>
+      <td class="t-{{ r.task_rate|tone }}">{{ r.task_rate|pct }}</td><td class="t-{{ r.on_time|tone }}">{{ r.on_time|pct }}</td><td>{{ r.students }}</td>
+    </tr>{% empty %}<tr><td colspan="11"><div class="empty"><b>No mentors yet.</b></div></td></tr>{% endfor %}</tbody></table></div>
+</div>
+
+{% if charts %}<div class="grid g2">
+  {% include "partials/chart.html" with title="Tests by mentor" cid="m-tests" config=charts.tests %}
+  {% include "partials/chart.html" with title="Rates compared" sub="A dash means there is no data for that measure" cid="m-rates" config=charts.rates %}
+</div>{% endif %}
+
+<div class="card">
+  <h2>How the score works</h2>
+  <p class="muted small">Every rate shows “–” when it has no denominator. A missing rate is left out of the score and the remaining weights are rescaled, so lack of data never counts as 0% or 100%. A mentor is only ranked once enough tests were due in the period.</p>
+  <ul class="small">
+    <li><b>Tests conducted ({{ weights.conduct }}%)</b> = completed ÷ due tests (date has passed). Cancelled and missed tests count against the rate; reasons are visible on each test.</li>
+    <li><b>Marks entered ({{ weights.marks }}%)</b> = completed tests with marks for every active student ÷ completed tests.</li>
+    <li><b>Schedule compliance ({{ weights.compliance }}%)</b> = batches within their test interval ÷ the mentor's active batches.</li>
+    <li><b>Tasks done ({{ weights.task_rate }}%)</b> = completed ÷ tasks assigned in the period.</li>
+    <li><b>Tasks on time ({{ weights.on_time }}%)</b> = tasks finished by their deadline ÷ tasks with a deadline that are finished or overdue.</li>
+  </ul>
+</div>
+{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}

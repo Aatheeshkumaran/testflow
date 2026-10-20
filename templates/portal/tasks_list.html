@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if user.is_mentor_role %}My tasks{% else %}Mentor tasks{% endif %}</h1><p class="muted">Tasks with no deadline are never marked overdue.</p></div>
+  {% if not user.is_mentor_role %}<a class="btn primary" href="{% url 'tasks_new' %}">+ Assign task</a>{% endif %}</div>
+<form method="get" class="filters">
+  <div><label for="status">Status</label><select id="status" name="status"><option value="">All</option><option value="OPEN" {% if status == "OPEN" %}selected{% endif %}>Open</option><option value="OVERDUE" {% if status == "OVERDUE" %}selected{% endif %}>Overdue</option>
+    {% for v, t in statuses %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  {% if mentors %}<div><label for="mentor">Mentor</label><select id="mentor" name="mentor"><option value="">All mentors</option>{% for m in mentors %}<option value="{{ m.pk }}" {% if mentor == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.display_name }}</option>{% endfor %}</select></div>{% endif %}
+  <div style="flex:0"><button class="btn">Filter</button></div></form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Task</th><th>Mentor</th><th>Priority</th><th>Status</th><th>Progress</th><th>Deadline</th></tr></thead><tbody>
+  {% for t in page %}<tr><td><a href="{% url 'tasks_detail' t.pk %}"><b>{{ t.title }}</b></a></td><td>{{ t.assigned_to.display_name }}</td>
+    <td><span class="badge {{ t.priority|lower }}">{{ t.get_priority_display }}</span></td>
+    <td><span class="badge {{ t.status|lower }}">{{ t.get_status_display }}</span>{% if t.is_overdue %} <span class="badge bad">overdue</span>{% endif %}</td>
+    <td style="min-width:110px"><div class="bar"><i style="width:{{ t.progress }}%"></i></div><span class="small muted">{{ t.progress }}%</span></td>
+    <td class="nowrap">{% if t.deadline %}{{ t.deadline|date:"d M Y, H:i" }}{% else %}<span class="muted">No deadline</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="6"><div class="empty"><b>No tasks.</b></div></td></tr>{% endfor %}</tbody></table></div>{% include "partials/pager.html" %}</div>
+{% endblock %}

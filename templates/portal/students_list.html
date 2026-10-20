@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if user.is_mentor_role %}My students{% else %}Students{% endif %}</h1><p class="muted">{{ page.paginator.count }} student{{ page.paginator.count|pluralize }}</p></div>
+  {% if not user.is_mentor_role %}<a class="btn primary" href="{% url 'students_new' %}">+ Add student</a>{% endif %}</div>
+<form method="get" class="filters">
+  <div class="wide"><label for="q">Search</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Name, ID or email"></div>
+  <div><label for="batch">Batch</label><select id="batch" name="batch"><option value="">All batches</option>{% for b in batches %}<option value="{{ b.pk }}" {% if batch == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
+  {% if mentors %}<div><label for="mentor">Mentor</label><select id="mentor" name="mentor"><option value="">All mentors</option>{% for m in mentors %}<option value="{{ m.pk }}" {% if mentor == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.display_name }}</option>{% endfor %}</select></div>{% endif %}
+  <div><label for="status">Status</label><select id="status" name="status"><option value="active" {% if status == "active" %}selected{% endif %}>Active</option><option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option><option value="all" {% if status == "all" %}selected{% endif %}>All</option></select></div>
+  <div style="flex:0"><label class="checks" style="display:flex;gap:6px;align-items:center;font-weight:500;margin-bottom:10px"><input type="checkbox" name="attention" value="1" style="width:auto" {% if attention %}checked{% endif %}> Needs attention</label></div>
+  <div style="flex:0"><button class="btn">Filter</button></div>
+</form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Student</th><th>ID</th><th>Batch</th><th>Tests</th><th>Average</th><th>Latest</th><th>Last test</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for s in page %}<tr>
+    <td><b>{{ s.full_name }}</b><div class="muted small">{{ s.email }}</div></td><td>{{ s.student_code }}</td><td>{{ s.batch.name }}</td><td>{{ s.test_count }}</td>
+    <td class="t-{{ s.avg_pct|tone }}">{{ s.avg_pct|floatformat:1|default:"—" }}{% if s.avg_pct is not None %}%{% endif %}</td><td class="t-{{ s.latest_pct|tone }}">{{ s.latest_pct|pct }}</td>
+    <td>{% if s.last_test %}{{ s.last_test|date:"d M Y" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+    <td><span class="badge {% if s.is_active %}active{% else %}inactive{% endif %}">{% if s.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+    <td class="right"><a class="btn sm" href="{% url 'students_detail' s.pk %}">View profile</a></td></tr>
+  {% empty %}<tr><td colspan="9"><div class="empty"><b>No students match.</b>{% if user.is_mentor_role %}You only see students in your batches.{% else %}Try clearing the filters or add a student.{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div>{% include "partials/pager.html" %}</div>
+{% endblock %}

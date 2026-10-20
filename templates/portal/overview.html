@@ -1,0 +1,92 @@
+{% extends "base.html" %}{% load tf %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Overview</h1><p class="muted">Are tests happening, are marks in, and how are students performing?</p></div>
+  <div class="actions">
+    {% include "partials/period.html" %}
+    <a class="btn" href="{% url 'tasks_new' %}">Assign task</a>
+    <a class="btn primary" href="{% url 'tests_new' %}">+ Schedule test</a>
+  </div>
+</div>
+
+<div class="kpis">
+  {% include "partials/kpi.html" with label="Active students" value=counts.students %}
+  {% include "partials/kpi.html" with label="Active mentors" value=counts.mentors %}
+  {% include "partials/kpi.html" with label="Tests completed" value=overview.completed sub="in selected period" %}
+  {% include "partials/kpi.html" with label="Missed (no outcome)" value=overview.missed tone="bad" sub="date passed, not recorded" %}
+  {% include "partials/kpi.html" with label="Average score" value=overview.avg_score|pct tone=overview.avg_score|tone n=overview.results_count sub=" results" %}
+  {% include "partials/kpi.html" with label="Overdue tasks" value=counts.overdue_tasks tone="bad" n=counts.open_tasks sub=" open" %}
+</div>
+
+<div class="card flush">
+  <div class="card-head"><div><h2>Mentor test monitor</h2><div class="muted small">Whether each mentor is actually conducting tests, as of today.</div></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Mentor</th><th>Status</th><th>Last test conducted</th><th>This month</th><th>Next test</th><th>Missed</th><th>Marks pending</th><th>Batches overdue</th></tr></thead>
+    <tbody>
+    {% for r in monitor %}
+      <tr>
+        <td><a class="who" href="{% url 'mentors_detail' r.mentor.pk %}">{% include "partials/avatar.html" with u=r.mentor size="sm" %}<b>{{ r.mentor.display_name }}</b></a></td>
+        <td>{% if r.status == "ok" %}<span class="badge ok">On track</span>{% elif r.status == "attention" %}<span class="badge attention">Needs attention</span>{% elif r.status == "no_tests" %}<span class="badge no_tests">No tests yet</span>{% else %}<span class="badge">No batches</span>{% endif %}</td>
+        <td>{% if r.last_test %}{{ r.last_test|date:"d M Y" }} <span class="muted small">({{ r.days_since }}d ago)</span>{% else %}<span class="muted">Never</span>{% endif %}</td>
+        <td>{{ r.this_month }}</td>
+        <td>{% if r.next_test %}<a href="{% url 'tests_detail' r.next_test.pk %}">{{ r.next_test.scheduled_at|date:"d M, H:i" }}</a>{% else %}<span class="muted">None scheduled</span>{% endif %}</td>
+        <td>{% if r.missed %}<span class="t-bad">{{ r.missed }}</span>{% else %}0{% endif %}</td>
+        <td>{% if r.marks_pending %}<span class="t-warn">{{ r.marks_pending }}</span>{% else %}0{% endif %}</td>
+        <td>{% for g in r.gaps %}<a href="{% url 'batches_detail' g.batch.pk %}" class="badge bad">{{ g.batch.name }} · {{ g.days_late }}d</a> {% empty %}<span class="muted">—</span>{% endfor %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="8"><div class="empty"><b>No active mentors yet.</b>Create mentor accounts in the Admin Control Center.</div></td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+
+{% if gaps %}
+<div class="card flush">
+  <div class="card-head"><div><h2>Batches overdue for a test</h2><div class="muted small">Based on each batch's own test interval.</div></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Batch</th><th>Mentor(s)</th><th>Last test</th><th>Expected by</th><th>Days late</th><th>Reason given</th></tr></thead><tbody>
+    {% for g in gaps %}<tr>
+      <td><a href="{% url 'batches_detail' g.batch.pk %}"><b>{{ g.batch.name }}</b></a></td>
+      <td>{% for m in g.batch.mentors.all %}{{ m.display_name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">none assigned</span>{% endfor %}</td>
+      <td>{% if g.last_date %}{{ g.last_date|date:"d M Y" }}{% else %}<span class="muted">Never</span>{% endif %}</td>
+      <td>{{ g.next_expected|date:"d M Y" }}</td><td><span class="t-bad">{{ g.days_late }}</span></td>
+      <td>{% if g.reason %}{{ g.reason.reason|truncatechars:70 }}{% else %}<span class="muted">No reason recorded</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+</div>
+{% endif %}
+
+<div class="grid g2">
+  {% if mentor_charts %}{% include "partials/chart.html" with title="Tests by mentor" sub="Conducted, cancelled and missed in the period" cid="c-tests" config=mentor_charts.tests %}{% endif %}
+  {% include "partials/chart.html" with title="Test outcomes" sub="All tests in the period" cid="c-status" config=overview.charts.status %}
+  {% include "partials/chart.html" with title="Average score over time" sub="Across all batches, by month" cid="c-monthly" config=overview.charts.monthly %}
+  {% include "partials/chart.html" with title="Batch averages" sub="Number in brackets = students with results" cid="c-batches" config=overview.charts.batches %}
+</div>
+
+<div class="card flush">
+  <div class="card-head"><div><h2>Mentor leaderboard</h2><div class="muted small">Normalised rates, not raw student counts. <a href="{% url 'mentors_list' %}">Details and formula</a></div></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Mentor</th><th>Score</th><th>Conducted</th><th>Marks entered</th><th>Schedule</th><th>Tasks done</th></tr></thead><tbody>
+    {% for r in board %}<tr>
+      <td>{% if r.ranked %}{{ r.rank }}{% else %}—{% endif %}</td>
+      <td><a href="{% url 'mentors_detail' r.mentor.pk %}">{{ r.mentor.display_name }}</a> <span class="muted small">{{ r.students }} students</span></td>
+      <td>{% if r.ranked %}<div class="bar {{ r.score|tone }}"><i style="width:{{ r.score|width }}%"></i></div><b class="small">{{ r.score }}</b>{% else %}<span class="badge">Not enough data</span>{% endif %}</td>
+      <td class="t-{{ r.conduct|tone }}">{{ r.conduct|pct }} <span class="muted small">{{ r.conducted }}/{{ r.due }}</span></td>
+      <td class="t-{{ r.marks|tone }}">{{ r.marks|pct }}</td><td class="t-{{ r.compliance|tone }}">{{ r.compliance|pct }}</td><td class="t-{{ r.task_rate|tone }}">{{ r.task_rate|pct }}</td>
+    </tr>{% empty %}<tr><td colspan="7"><div class="empty">No mentors to compare yet.</div></td></tr>{% endfor %}</tbody></table></div>
+</div>
+
+<div class="grid g2">
+  <div class="card"><div class="card-head"><h2>Students needing attention</h2><a class="small" href="{% url 'students_list' %}?attention=1">See all</a></div>
+    {% if attention_students %}<ul class="list">{% for r in attention_students %}<li><span><a href="{% url 'students_detail' r.student.pk %}">{{ r.student.full_name }}</a> <span class="muted small">{{ r.student.batch.name }}</span></span><span class="t-bad">{{ r.avg|pct }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No one flagged.</b>Flagged when the last 3 results average under the threshold.</div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>Marks not entered</h2></div>
+    {% if missing_marks %}<ul class="list">{% for a in missing_marks %}<li><span><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a> <span class="muted small">{{ a.batch }} · {{ a.mentor.display_name }}</span></span><span class="badge warn">{{ a.n_res }} entered</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>All marks are in.</b></div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>Upcoming tests</h2><a class="small" href="{% url 'tests_list' %}?view=calendar">Calendar</a></div>
+    {% if upcoming %}<ul class="list">{% for a in upcoming %}<li><span><a href="{% url 'tests_detail' a.pk %}">{{ a.title }}</a> <span class="muted small">{{ a.batch }} · {{ a.mentor.display_name }}</span></span><span class="muted small">{{ a.scheduled_at|date:"d M, H:i" }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>Nothing scheduled.</b></div>{% endif %}</div>
+  <div class="card"><div class="card-head"><h2>Overdue tasks</h2><a class="small" href="{% url 'tasks_list' %}?status=OVERDUE">See all</a></div>
+    {% if overdue_tasks %}<ul class="list">{% for t in overdue_tasks %}<li><span><a href="{% url 'tasks_detail' t.pk %}">{{ t.title }}</a> <span class="muted small">{{ t.assigned_to.display_name }}</span></span><span class="t-bad small">due {{ t.deadline|date:"d M" }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><b>No overdue tasks.</b></div>{% endif %}</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1>
+  <p class="muted">{% if editing %}Username cannot be changed.{% else %}The user must choose a new password the first time they sign in.{% endif %}</p></div>
+  <a class="btn" href="{% url 'control_center' %}">Back</a></div>
+<form method="post" enctype="multipart/form-data" class="card form-card" novalidate>
+  {% csrf_token %}
+  <div class="rolepick">
+    <div><b>Admin</b>Account access, user administration, organisation-wide controls.</div>
+    <div><b>Management</b>Student monitoring, mentor performance, reports and task assignment.</div>
+    <div><b>Mentor</b>Own batches and students, tests, marks and assigned tasks.</div>
+  </div>
+  {% include "partials/form_fields.html" %}
+  <div class="form-actions"><button class="btn primary">{% if editing %}Save changes{% else %}Create account{% endif %}</button><a class="btn" href="{% url 'control_center' %}">Cancel</a></div>
+</form>
+{% endblock %}

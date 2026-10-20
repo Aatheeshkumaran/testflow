@@ -1,0 +1,63 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}TestFlow{% endblock %} · TestFlow</title>
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="logo">T</span> TestFlow</div>
+    <nav aria-label="Main">
+      {% if user.is_mentor_role %}
+        <a href="{% url 'workspace' %}" class="{% if nav_section == 'workspace' %}active{% endif %}">{% include "partials/icon.html" with name="home" %} My workspace</a>
+        <a href="{% url 'mentors_detail' user.pk %}" class="{% if nav_section == 'mentors' %}active{% endif %}">{% include "partials/icon.html" with name="award" %} My scorecard</a>
+        <div class="nav-label">My responsibility</div>
+        <a href="{% url 'batches_list' %}" class="{% if nav_section == 'batches' %}active{% endif %}">{% include "partials/icon.html" with name="layers" %} My batches</a>
+        <a href="{% url 'students_list' %}" class="{% if nav_section == 'students' %}active{% endif %}">{% include "partials/icon.html" with name="user" %} My students</a>
+        <a href="{% url 'tests_list' %}" class="{% if nav_section == 'tests' %}active{% endif %}">{% include "partials/icon.html" with name="clipboard" %} Tests</a>
+        <a href="{% url 'tasks_list' %}" class="{% if nav_section == 'tasks' %}active{% endif %}">{% include "partials/icon.html" with name="check" %} My tasks</a>
+      {% else %}
+        <a href="{% url 'overview' %}" class="{% if nav_section == 'overview' %}active{% endif %}">{% include "partials/icon.html" with name="grid" %} Overview</a>
+        <a href="{% url 'mentors_list' %}" class="{% if nav_section == 'mentors' %}active{% endif %}">{% include "partials/icon.html" with name="users" %} Mentors</a>
+        <div class="nav-label">Training</div>
+        <a href="{% url 'batches_list' %}" class="{% if nav_section == 'batches' %}active{% endif %}">{% include "partials/icon.html" with name="layers" %} Batches</a>
+        <a href="{% url 'students_list' %}" class="{% if nav_section == 'students' %}active{% endif %}">{% include "partials/icon.html" with name="user" %} Students</a>
+        <a href="{% url 'tests_list' %}" class="{% if nav_section == 'tests' %}active{% endif %}">{% include "partials/icon.html" with name="clipboard" %} Tests</a>
+        <a href="{% url 'tasks_list' %}" class="{% if nav_section == 'tasks' %}active{% endif %}">{% include "partials/icon.html" with name="check" %} Mentor tasks</a>
+      {% endif %}
+      <div class="nav-label">General</div>
+      <a href="{% url 'notifications' %}" class="{% if nav_section == 'notifications' %}active{% endif %}">{% include "partials/icon.html" with name="bell" %} Notifications{% if unread_count %}<span class="badge-n">{{ unread_count }}</span>{% endif %}</a>
+      <a href="{% url 'reports' %}" class="{% if nav_section == 'reports' %}active{% endif %}">{% include "partials/icon.html" with name="file" %} Reports</a>
+      {% if user.is_admin_role %}
+        <a href="{% url 'control_center' %}" class="{% if nav_section == 'control' %}active{% endif %}">{% include "partials/icon.html" with name="shield" %} Admin Control Center</a>
+      {% endif %}
+    </nav>
+    <div class="me">
+      <div class="me-row">
+        {% include "partials/avatar.html" with u=user %}
+        <div><div class="me-name">{{ user.display_name }}</div><div class="me-role">{{ user.role_label }}</div></div>
+      </div>
+      <div class="me-links">
+        <a class="btn" href="{% url 'change_password' %}">Password</a>
+        <form method="post" action="{% url 'logout' %}" style="flex:1;display:flex">{% csrf_token %}<button class="btn" style="flex:1">Sign out</button></form>
+      </div>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="burger" aria-label="Menu">{% include "partials/icon.html" with name="menu" %}</button>
+      <div class="grow"></div>
+      <a class="bell" href="{% url 'notifications' %}" aria-label="Notifications">{% include "partials/icon.html" with name="bell" %}{% if unread_count %}<span class="badge-n">{{ unread_count }}</span>{% endif %}</a>
+    </header>
+    <main class="content">
+      {% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% block scripts %}{% endblock %}
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
