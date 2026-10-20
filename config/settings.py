@@ -6,7 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.environ.get("TESTFLOW_DEBUG", "1") == "1"
+DEBUG = os.environ.get("TESTFLOW_DEBUG", "0") == "1"
 SECRET_KEY = os.environ.get("TESTFLOW_SECRET_KEY", "dev-only-insecure-key-change-me")
 if not DEBUG and SECRET_KEY.startswith("dev-only"):
     raise ImproperlyConfigured("Set TESTFLOW_SECRET_KEY when TESTFLOW_DEBUG=0.")
