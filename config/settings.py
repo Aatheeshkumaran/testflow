@@ -10,8 +10,11 @@ DEBUG = os.environ.get("TESTFLOW_DEBUG", "1") == "1"
 SECRET_KEY = os.environ.get("TESTFLOW_SECRET_KEY", "dev-only-insecure-key-change-me")
 if not DEBUG and SECRET_KEY.startswith("dev-only"):
     raise ImproperlyConfigured("Set TESTFLOW_SECRET_KEY when TESTFLOW_DEBUG=0.")
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get("TESTFLOW_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h.strip()]
-
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "testflow-seven.vercel.app",
+]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
