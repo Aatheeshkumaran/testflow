@@ -15,6 +15,9 @@ ALLOWED_HOSTS = [
     "localhost",
     "testflow-seven.vercel.app",
 ]
+CSRF_TRUSTED_ORIGINS = [
+    "https://testflow-seven.vercel.app",
+]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
